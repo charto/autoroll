@@ -1,0 +1,5 @@
+package-lock.json
+*.lock
+*.log.*
+*.log
+*.tgz

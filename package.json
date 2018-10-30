@@ -1,0 +1,20 @@
+{
+  "name": "autoroll",
+  "version": "0.0.1",
+  "description": "Rollup autoconfigurator",
+  "main": "index.js",
+  "author": "Juha Järvi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/charto/autoroll.git"
+  },
+  "bugs": {
+    "url": "https://github.com/charto/autoroll/issues"
+  },
+  "homepage": "https://github.com/charto/autoroll#readme",
+  "keywords": [
+    "package",
+    "rollup"
+  ]
+}
