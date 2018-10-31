@@ -45,6 +45,15 @@ Any more complicated setup should use a traditional rollup config file with plug
 [rollup-plugin-commonjs](https://github.com/rollup/rollup-plugin-commonjs).
 This package is for avoiding build system bloat in simpler cases.
 
+For testing packages with old Node.js versions (lack of modern JavaScript features can resemble old mobile browsers),
+it can be helpful to run `rollup` conditionally in package scripts using the included `checkver` tool:
+
+```json
+{
+  "prepublish": "(checkver ge 5.0.0 && rollup -c)"
+}
+```
+
 # License
 
 [The MIT License](https://raw.githubusercontent.com/charto/autoroll/master/LICENSE)

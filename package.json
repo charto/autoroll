@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Rollup autoconfigurator",
   "main": "index.js",
+  "bin": {
+    "checkver": "checkver"
+  },
   "author": "Juha Järvi",
   "license": "MIT",
   "repository": {
@@ -14,6 +17,8 @@
   },
   "homepage": "https://github.com/charto/autoroll#readme",
   "keywords": [
+    "loader",
+    "module",
     "package",
     "rollup"
   ]
