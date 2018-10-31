@@ -23,7 +23,27 @@ Entry point paths are configured in de facto standard `package.json` fields whic
 - `main`
 - `module`
 
-If you have dependencies, to avoid bloat they don't get bundled.
+If you have dependencies, to avoid bloat they don't get bundled by default.
+You can include specific dependencies in the UMD bundle by listing them in `rollup.config.js`:
+
+```JavaScript
+module.exports = require('autoroll')(
+  require('./package.json'),
+  {
+    include: [
+      'some',
+      'dependencies'
+    ]
+  }
+);
+```
+
+They are looked up from the current working directory (package root in npm scripts), under `node_modules`.
+Each package should have a `package.json` file with a `module` or `main` field defining an ES6 entry point.
+Any more complicated setup should use a traditional rollup config file with plugins like
+[rollup-plugin-node-resolve](https://github.com/rollup/rollup-plugin-node-resolve) and
+[rollup-plugin-commonjs](https://github.com/rollup/rollup-plugin-commonjs).
+This package is for avoiding build system bloat in simpler cases.
 
 # License
 
