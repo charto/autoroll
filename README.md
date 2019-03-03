@@ -13,10 +13,10 @@ It reads your `package.json` file and automatically extracts relevant informatio
 Put this in your `rollup.config.js`:
 
 ```JavaScript
-module.exports = require('autoroll')(require('./package.json'));
+module.exports = require('autoroll')();
 ```
 
-That's all. Now it generates CommonJS and UMD bundles from ES6 sources.
+That's all. Now it generates UMD bundles from ES6 sources.
 Entry point paths are configured in de facto standard `package.json` fields which you should set up anyway:
 
 - `browser`
@@ -28,7 +28,6 @@ You can include specific dependencies in the UMD bundle by listing them in `roll
 
 ```JavaScript
 module.exports = require('autoroll')(
-  require('./package.json'),
   {
     include: [
       'some',
@@ -40,6 +39,18 @@ module.exports = require('autoroll')(
 
 They are looked up from the current working directory (package root in npm scripts), under `node_modules`.
 Each package should have a `package.json` file with a `module` or `main` field defining an ES6 entry point.
+
+There is special support for [boennemann/alle](https://github.com/boennemann/alle#readme).
+If an `alle`-style directory contains a subdirectory `node_modules` with several packages belonging to the same monorepo,
+`autoroll` can create a separate bundle for each one. Entry points and bundle paths are configured in
+`package.json` files for each package.
+
+For example packages under `packages/node_modules` can be bundled with the following `rollup.config.js`:
+
+```
+module.exports = require('autoroll')({ alle: 'packages' });
+```
+
 Any more complicated setup should use a traditional rollup config file with plugins like
 [rollup-plugin-node-resolve](https://github.com/rollup/rollup-plugin-node-resolve) and
 [rollup-plugin-commonjs](https://github.com/rollup/rollup-plugin-commonjs).

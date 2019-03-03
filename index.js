@@ -1,4 +1,7 @@
 var path = require('path');
+var fs = require('fs');
+
+/** Map kebab-case module names to camelCase exported variable names. */
 
 function camelize(name) {
 	return(name.replace(/-([a-z])/g, function(match) {
@@ -6,50 +9,99 @@ function camelize(name) {
 	}));
 }
 
-function configure(pkg, config) {
-	var names = {};
-	var bundle = {};
+/** Generate internal npm package descriptor. */
 
+function newPackage(name, root, json) {
+	return({
+		pkgName: name,
+		varName: camelize(name),
+		// Package root path containing package.json.
+		root: root,
+		json: json,
+		bundle: false
+	});
+}
+
+/** Generate rollup config object. */
+
+function configure(config) {
 	config = config || {};
-	(config.include || []).map(function(name) { bundle[name] = true; });
 
-	var deps = Object.keys(pkg.dependencies || {}).concat(
-		Object.keys(pkg.peerDependencies || {})
-	);
+	var root = config.root || '.';
+	var json = require(path.resolve(root, 'package.json'));
+	var packages = [];
 
-	deps.map(function(name) {
-		names[name] = camelize(name);
+	// Add all external packages as possible dependencies.
+
+	var registry = {};
+	var names = {};
+
+	[].concat(
+		Object.keys(json.dependencies || {}),
+		Object.keys(json.peerDependencies || {})
+	).map(function(name) {
+		var spec = newPackage(name, path.resolve(root, 'node_modules', name));
+
+		registry[name] = spec;
+		names[name] = spec.varName;
 	});
 
-	function resolve(name, parent) {
-		try {
-			var pkgName = name.split('/')[0];
+	if(config.alle) {
+		// Find all packages under packages/node_modules or similar.
+		fs.readdirSync(path.resolve(config.alle, 'node_modules')).map(function(name) {
+			var spec = newPackage(name);
 
-			if(bundle[pkgName]) {
-				var pkg = require(path.resolve('node_modules', name, 'package.json'));
+			try {
+				spec.root = path.resolve(config.alle, 'node_modules', name);
+				spec.json = require(path.resolve(spec.root, 'package.json'));
 
-				return(require('path').resolve('node_modules', name, pkg.module || pkg.main));
-			}
-		} catch(err) {}
+				registry[name] = spec;
+				names[name] = spec.varName;
+
+				packages.push(spec);
+			} catch(err) {}
+		});
+	} else {
+		// Add this package.
+		packages.push(newPackage(json.name, root, json));
 	}
 
-	return([
-		{
-			input: pkg.module,
-			external: deps,
+	// Note packages configured for inclusion in bundles.
+
+	(config.include || []).map(function(name) {
+		(registry[name] || {}).bundle = true;
+	});
+
+	// Resolve a package name for rollup.
+
+	function resolve(name, parent) {
+		var parts = name.split('/');
+		var spec = registry[parts[0]];
+
+		if(spec) {
+			var json = spec.json;
+			return(path.resolve(spec.root, parts.slice(1).join('/') || json.module || json.main));
+		}
+	}
+
+	// Generate rollup config to bundle each internal package separately.
+
+	var rollupConfig = packages.map(function(spec) {
+		// Read internal package config.
+		var json = spec.json;
+
+		return({
+			// Start from ES module or main entry point.
+			input: path.resolve(spec.root, json.module || json.main),
+			// Treat all dependencies as external, not bundled in.
+			external: Object.keys(registry).filter(function(name) { return(!registry[name].bundle); }),
 			output: [
 				{
-					file: pkg.main,
-					format: 'cjs'
-				}
-			]
-		}, {
-			input: pkg.module,
-			external: deps.filter(function(name) { return(!bundle[name]) }),
-			output: [
-				{
-					file: pkg.browser,
-					name: camelize(pkg.name),
+					// Generate browser entry point script.
+					file: path.resolve(spec.root, json.browser),
+					// Use module name in camelCase as the variable to export.
+					name: camelize(json.name),
+					// Guess variable names exported by other packages.
 					globals: names,
 					format: 'umd'
 				}
@@ -59,8 +111,15 @@ function configure(pkg, config) {
 					resolveId: resolve
 				}
 			]
-		}
-	]);
+		});
+	});
+
+	if((!module.parent || !module.parent.parent) && !config.silent) {
+		// If rollup config script was called directly, print generated config.
+		process.stdout.write(JSON.stringify(rollupConfig, null, '  '));
+	}
+
+	return(rollupConfig);
 };
 
 module.exports = configure;
