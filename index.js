@@ -17,7 +17,7 @@ function newPackage(name, root, json) {
 		varName: camelize(name),
 		// Package root path containing package.json.
 		root: root,
-		json: json,
+		json: json || require(path.resolve(root, 'package.json')),
 		bundle: false
 	});
 }
@@ -40,20 +40,20 @@ function configure(config) {
 		Object.keys(json.dependencies || {}),
 		Object.keys(json.peerDependencies || {})
 	).map(function(name) {
-		var spec = newPackage(name, path.resolve(root, 'node_modules', name));
+		if((config.map || {})[name]) return;
+		try {
+			var spec = newPackage(name, path.resolve(root, 'node_modules', name));
 
-		registry[name] = spec;
-		names[name] = spec.varName;
+			registry[name] = spec;
+			names[name] = spec.varName;
+		} catch(err) {}
 	});
 
 	if(config.alle) {
 		// Find all packages under packages/node_modules or similar.
 		fs.readdirSync(path.resolve(config.alle, 'node_modules')).map(function(name) {
-			var spec = newPackage(name);
-
 			try {
-				spec.root = path.resolve(config.alle, 'node_modules', name);
-				spec.json = require(path.resolve(spec.root, 'package.json'));
+				var spec = newPackage(name, path.resolve(config.alle, 'node_modules', name));
 
 				registry[name] = spec;
 				names[name] = spec.varName;
@@ -75,6 +75,9 @@ function configure(config) {
 	// Resolve a package name for rollup.
 
 	function resolve(name, parent) {
+		var result = (config.map || {})[name];
+		if(result) return(path.resolve(result));
+
 		var parts = name.split('/');
 		var spec = registry[parts[0]];
 
